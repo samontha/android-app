@@ -1,77 +1,93 @@
 package com.example.earthypalettegenerator;
 
+import android.content.ClipData;
+import android.content.ClipboardManager;
+import android.content.Context;
+import android.graphics.Color;
 import android.os.Bundle;
-
-import com.google.android.material.snackbar.Snackbar;
+import android.view.View;
+import android.widget.Toast;
+import android.widget.TextView;
 
 import androidx.appcompat.app.AppCompatActivity;
 
-import android.view.View;
-
-import androidx.navigation.NavController;
-import androidx.navigation.Navigation;
-import androidx.navigation.ui.AppBarConfiguration;
-import androidx.navigation.ui.NavigationUI;
-
 import com.example.earthypalettegenerator.databinding.ActivityMainBinding;
 
-import android.view.Menu;
-import android.view.MenuItem;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Random;
 
 public class MainActivity extends AppCompatActivity {
 
-    private AppBarConfiguration appBarConfiguration;
     private ActivityMainBinding binding;
+    private final Random random = new Random();
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-
         binding = ActivityMainBinding.inflate(getLayoutInflater());
         setContentView(binding.getRoot());
 
-        setSupportActionBar(binding.toolbar);
+        List<View> colorViews = Arrays.asList(
+                binding.color1,
+                binding.color2,
+                binding.color3,
+                binding.color4,
+                binding.color5
+        );
 
-        NavController navController = Navigation.findNavController(this, R.id.nav_host_fragment_content_main);
-        appBarConfiguration = new AppBarConfiguration.Builder(navController.getGraph()).build();
-        NavigationUI.setupActionBarWithNavController(this, navController, appBarConfiguration);
+        binding.generateButton.setOnClickListener(v -> refreshPalette(colorViews));
 
-        binding.fab.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                Snackbar.make(view, "Replace with your own action", Snackbar.LENGTH_LONG)
-                        .setAnchorView(R.id.fab)
-                        .setAction("Action", null).show();
-            }
-        });
+        refreshPalette(colorViews);
     }
 
-    @Override
-    public boolean onCreateOptionsMenu(Menu menu) {
-        // Inflate the menu; this adds items to the action bar if it is present.
-        getMenuInflater().inflate(R.menu.menu_main, menu);
-        return true;
-    }
+    private void refreshPalette(List<View> colorViews) {
 
-    @Override
-    public boolean onOptionsItemSelected(MenuItem item) {
-        // Handle action bar item clicks here. The action bar will
-        // automatically handle clicks on the Home/Up button, so long
-        // as you specify a parent activity in AndroidManifest.xml.
-        int id = item.getItemId();
+        List<TextView> labels = Arrays.asList(
+                binding.label1,
+                binding.label2,
+                binding.label3,
+                binding.label4,
+                binding.label5
+        );
 
-        //noinspection SimplifiableIfStatement
-        if (id == R.id.action_settings) {
-            return true;
+        for (int i = 0; i < colorViews.size(); i++) {
+
+            View colorBlock = colorViews.get(i);
+            TextView label = labels.get(i);
+
+            int newColor = generateEarthyColor();
+            String hex = String.format("#%06X", (0xFFFFFF & newColor));
+
+            // Set background color
+            colorBlock.setBackgroundColor(newColor);
+
+            // Set the label text
+            label.setText(hex);
+
+            // Allow clicking either the color or text to copy hex code
+            colorBlock.setOnClickListener(v -> copyHexToClipboard(newColor));
+            label.setOnClickListener(v -> copyHexToClipboard(newColor));
         }
-
-        return super.onOptionsItemSelected(item);
     }
 
-    @Override
-    public boolean onSupportNavigateUp() {
-        NavController navController = Navigation.findNavController(this, R.id.nav_host_fragment_content_main);
-        return NavigationUI.navigateUp(navController, appBarConfiguration)
-                || super.onSupportNavigateUp();
+    private int generateEarthyColor() {
+        float hue = 20f + random.nextFloat() * (90f - 20f); // Earthy hue range
+        float saturation = 0.20f + random.nextFloat() * (0.60f - 0.20f);
+        float lightness = 0.30f + random.nextFloat() * (0.70f - 0.30f);
+
+        return Color.HSVToColor(new float[]{hue, saturation, lightness});
+    }
+
+    private void copyHexToClipboard(int color) {
+        String hex = String.format("#%06X", (0xFFFFFF & color));
+
+        ClipboardManager clipboard =
+                (ClipboardManager) getSystemService(Context.CLIPBOARD_SERVICE);
+
+        ClipData clip = ClipData.newPlainText("color", hex);
+        clipboard.setPrimaryClip(clip);
+
+        Toast.makeText(this, "Copied " + hex, Toast.LENGTH_SHORT).show();
     }
 }
